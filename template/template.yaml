@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion : 2010-09-09
+Resources:
+  ElasticSearch:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      EngineVersion: OpenSearch_1.0
+      ClusterConfig:
+        DedicatedMasterEnabled: true
+        InstanceCount: 1
+        InstanceType: m3.medium.search
+        DedicatedMasterType: m3.medium.search
+        DedicatedMasterCount: 2
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 20
+        VolumeType: gp2
+          # AccessPolicies:
+          # Version: 2012-10-17
+          # Statement:
+          # - Effect: Allow
+          # Principal:
+          # AWS: '*'
+          # Action: 'es:*'
+          # Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*'
+
+  ContainerCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  ContainerServices:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Ref: ContainerCluster
+      DesiredCount: 1
+      TaskDefinition:
+        Ref: JaegerTracing
+
+  JaegerTracing:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      requiresCompatibilities:
+        - "EC2"
+      inferenceAccelerators: []
+      containerDefinitions:
+        -
+          dnsSearchDomains: []
+          environmentFiles: []
+          logConfiguration: []
+          entryPoint: []
+          portMappings:
+            -
+              hostPort: 14269
+              protocol: "tcp"
+              containerPort: 14269
+            -
+              hostPort: 14268
+              protocol: "tcp"
+              containerPort: 14268
+            -
+              hostPort: 6832
+              protocol: "udp"
+              containerPort: 6832
+            -
+              hostPort: 6831
+              protocol: "udp"
+              containerPort: 6831
+            -
+              hostPort: 5775
+              protocol: "udp"
+              containerPort: 5775
+            -
+              hostPort: 14250
+              protocol: "tcp"
+              containerPort: 14250
+            -
+              hostPort: 16685
+              protocol: "tcp"
+              containerPort: 16685
+            -
+              hostPort: 5778
+              protocol: "tcp"
+              containerPort: 5778
+            -
+              hostPort: 16686
+              protocol: "tcp"
+              containerPort: 16686
+            -
+              hostPort: 9411
+              protocol: "tcp"
+              containerPort: 9411
+          command:
+            - "--collector.zipkin.host-port"
+            - "9411"
+          linuxParameters: []
+          cpu: 1024
+          environment:
+            -
+              name: "ES_SERVER_URLS"
+              value: !GetAtt ElasticSearch.DomainEndpoint
+            -
+              name: "SPAN_STORAGE_TYPE"
+              value: "elasticsearch"
+          resourceRequirements: []
+          ulimits: []
+          dnsServers: []
+          mountPoints: []
+          dockerSecurityOptions: []
+          memory: 1024
+          volumesFrom: []
+          image: "jaegertracing/all-in-one:1.25.0"
+          essential: true
+          links: []
+      volumes: []
+      memory: "2048"
+      cpu: "2048"
+      placementConstraints: []
+      taskRoleArn: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/ecsTaskExecutionRole'
+      executionRoleArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"
+      tags: []
+
+Outputs:
+  ElasticSearchEndpoint:
+    Value: !GetAtt ElasticSearch.DomainEndpoint
