@@ -18,9 +18,16 @@ namespace Tracing.IntegrationApi
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
+                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
+                .ConfigureLogging(builder =>
                 {
-                    webBuilder.UseStartup<Startup>();
+                    builder.AddConsole();
+                    builder.AddOpenTelemetry(options =>
+                    {
+                        options.IncludeScopes = true;
+                        options.ParseStateValues = true;
+                        options.IncludeFormattedMessage = true;
+                    });
                 });
     }
 }

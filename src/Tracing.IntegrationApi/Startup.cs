@@ -11,6 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Tracing.IntegrationApi.Controllers;
 
 namespace Tracing.IntegrationApi
 {
@@ -26,6 +30,15 @@ namespace Tracing.IntegrationApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddOpenTelemetryTracing(builder => builder
+                .AddAspNetCoreInstrumentation()
+                .AddSource(nameof(IntegrationController))
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Tracing.IntegrationApi"))
+                .AddJaegerExporter(options =>
+                {
+                    options.AgentHost = "localhost";
+                    options.AgentPort = 6831;
+                }));
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -43,12 +56,10 @@ namespace Tracing.IntegrationApi
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Tracing.IntegrationApi v1"));
             }
+
             app.UseRouting();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }
