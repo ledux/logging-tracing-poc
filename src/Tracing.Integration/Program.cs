@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Tracing.Integration.Consumer;
+using Tracing.Integration.Client;
 using Tracing.Integration.Hosting;
 using Tracing.Integration.Models;
 
@@ -28,13 +28,13 @@ namespace Tracing.Integration
                                 EnableAutoCommit = true
                             };
                             var builder = new ConsumerBuilder<string, string>(config).Build();
-                            var kafkaEventHandler = new KafkaEventHandler();
+                            var kafkaEventHandler = new PostDataEventHandler();
                             return new KafkaListenerService<Data>(builder, new[] { "topicname" }, kafkaEventHandler);
                         });
                     
                         Sdk.CreateTracerProviderBuilder()
                             .AddSource(nameof(KafkaListenerService<Data>))
-                            .AddSource(nameof(KafkaEventHandler))
+                            .AddSource(nameof(PostDataEventHandler))
                             .AddHttpClientInstrumentation(options => options.RecordException = true)
                             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Tracing.Integration"))
                             .AddJaegerExporter(options =>

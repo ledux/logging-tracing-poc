@@ -9,7 +9,6 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
-using Tracing.Integration.Consumer;
 using Tracing.Integration.Models;
 
 namespace Tracing.Integration.Hosting
