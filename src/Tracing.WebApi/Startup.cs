@@ -32,7 +32,6 @@ namespace Tracing.WebApi
                 .AddAspNetCoreInstrumentation()
                 .AddSource(nameof(DataController))
                 .AddSource(nameof(KafkaProducer))
-                .AddHttpClientInstrumentation(options => options.RecordException = true)
                 .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Tracing.WebApi"))
                 .AddConsoleExporter(options => options.Targets = ConsoleExporterOutputTargets.Debug)
                 .AddJaegerExporter(options =>

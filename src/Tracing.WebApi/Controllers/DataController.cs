@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
+using Tracing.WebApi.Models;
 using Tracing.WebApi.Producer;
 
 namespace Tracing.WebApi.Controllers
