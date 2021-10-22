@@ -6,6 +6,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Tracing.Integration.Consumer;
 using Tracing.Integration.Hosting;
+using Tracing.Integration.Models;
 
 namespace Tracing.Integration
 {
@@ -28,12 +29,11 @@ namespace Tracing.Integration
                             };
                             var builder = new ConsumerBuilder<string, string>(config).Build();
                             var kafkaEventHandler = new KafkaEventHandler();
-                            return new KafkaListenerService<string, string>(builder, new[] { "topicname" }, kafkaEventHandler);
+                            return new KafkaListenerService<Data>(builder, new[] { "topicname" }, kafkaEventHandler);
                         });
                     
                         Sdk.CreateTracerProviderBuilder()
-                            .AddAspNetCoreInstrumentation()
-                            .AddSource(nameof(KafkaListenerService<string, string>))
+                            .AddSource(nameof(KafkaListenerService<Data>))
                             .AddSource(nameof(KafkaEventHandler))
                             .AddHttpClientInstrumentation(options => options.RecordException = true)
                             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Tracing.Integration"))

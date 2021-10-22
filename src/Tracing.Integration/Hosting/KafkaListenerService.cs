@@ -1,21 +1,31 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
+using Tracing.Integration.Consumer;
+using Tracing.Integration.Models;
 
 namespace Tracing.Integration.Hosting
 {
-    public class KafkaListenerService<TKey, TData> : BackgroundService
+    public class KafkaListenerService<TData> : BackgroundService
     {
-        private readonly IConsumer<TKey,TData> _consumer;
+        private readonly IConsumer<string, string> _consumer;
         private readonly IEnumerable<string> _topics;
-        private readonly IEventHandler<TKey, TData> _handler;
+        private readonly IEventHandler<TData> _handler;
+        private static readonly ActivitySource ActivitySource = new(nameof(KafkaListenerService<TData>));
+        private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
 
-        public KafkaListenerService(IConsumer<TKey, TData> consumer, IEnumerable<string> topics, IEventHandler<TKey, TData> handler)
+        public KafkaListenerService(IConsumer<string, string> consumer, IEnumerable<string> topics,
+            IEventHandler<TData> handler)
         {
-            _consumer = consumer;
+            _consumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
             _topics = topics ?? throw new ArgumentNullException(nameof(topics));
             _handler = handler ?? throw new ArgumentNullException(nameof(handler));
         }
@@ -31,13 +41,31 @@ namespace Tracing.Integration.Hosting
             while (!stoppingToken.IsCancellationRequested)
             {
                 var consumeResult = _consumer.Consume(stoppingToken);
-                await _handler.Handle(consumeResult);
+                var eventData = JsonSerializer.Deserialize<Event<TData>>(consumeResult.Message.Value);
+                var parentContext = Propagator.Extract(default, eventData.Context, ExtractContext);
+                Baggage.Current = parentContext.Baggage;
+
+                using var startActivity = ActivitySource.StartActivity("handling kafka event", ActivityKind.Consumer,
+                    parentContext.ActivityContext);
+                startActivity?.AddEvent(new ActivityEvent("event received"));
+
+                await _handler.Handle(eventData.Payload);
             }
+        }
+
+        private IEnumerable<string> ExtractContext(Dictionary<string, string> carrier, string key)
+        {
+            if (carrier.TryGetValue(key, out var value))
+            {
+                return new[] { value };
+            }
+
+            return Enumerable.Empty<string>();
         }
     }
 
-    public interface IEventHandler<T, T1>
+    public interface IEventHandler<in TData>
     {
-        Task<T1> Handle(ConsumeResult<T, T1> result);
+        Task Handle(TData data);
     }
 }

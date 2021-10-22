@@ -1,24 +1,26 @@
-using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Confluent.Kafka;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using Tracing.Integration.Hosting;
 using Tracing.Integration.Models;
 
 namespace Tracing.Integration.Consumer
 {
-    public class KafkaEventHandler : IEventHandler<string, string>
+    public class KafkaEventHandler : IEventHandler<Data>
     {
         private static readonly ActivitySource ActivitySource = new (nameof(KafkaEventHandler));
+        private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
             
-        public async Task<string> Handle(ConsumeResult<string, string> result)
+        public async Task Handle(Data result)
         {
-            using var startActivity = ActivitySource.StartActivity("handling kafka event", ActivityKind.Client);
-            var data = JsonSerializer.Deserialize<Data>(result.Message.Value);
-            startActivity?.AddTag("email", data?.Email);
-
-            return "";
+            using var activity = ActivitySource.StartActivity("sending data", ActivityKind.Client);
+            activity?.AddTag("correlationId", result.CorrelationId);
+            activity?.AddTag("email", result.Email);
         }
     }
 }
