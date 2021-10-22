@@ -18,8 +18,10 @@ namespace Tracing.Integration
                 .ConfigureServices((context, collection) =>
                 {
                     collection
+                        .AddTransient<PostDataEventHandler>()
                         .AddSingleton<IHostedService>(provider =>
                         {
+                            var postDataEventHandler = provider.GetService<PostDataEventHandler>();
                             ConsumerConfig config = new ConsumerConfig()
                             {
                                 BootstrapServers = "localhost:29092",
@@ -28,9 +30,10 @@ namespace Tracing.Integration
                                 EnableAutoCommit = true
                             };
                             var builder = new ConsumerBuilder<string, string>(config).Build();
-                            var kafkaEventHandler = new PostDataEventHandler();
-                            return new KafkaListenerService<Data>(builder, new[] { "topicname" }, kafkaEventHandler);
-                        });
+                            return new KafkaListenerService<Data>(builder, new[] { "topicname" }, postDataEventHandler);
+                        })
+                        .AddHttpClient<PostDataEventHandler>()
+                        ;
                     
                         Sdk.CreateTracerProviderBuilder()
                             .AddSource(nameof(KafkaListenerService<Data>))
