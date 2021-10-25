@@ -35,28 +35,13 @@ namespace Tracing.WebApi
                 .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Tracing.WebApi"))
                 .AddConsoleExporter(options => options.Targets = ConsoleExporterOutputTargets.Debug)
                 .AddJaegerExporter(options =>
-                    {
-                        options.AgentHost = "localhost";
-                        options.AgentPort = 6831;
-                        options.ExportProcessorType = ExportProcessorType.Simple;
-                    }));
-            
-            // var tracerProvider = Sdk.CreateTracerProviderBuilder()
-            //     .SetSampler(new AlwaysOnSampler())
-            //     .AddSource("tracer: Tracing.WebApi")
-            //     .AddJaegerExporter(options =>
-            //        {
-            //            options.AgentHost = "localhost";
-            //            options.AgentPort = 6831;
-            //        })
-            //     .AddHttpClientInstrumentation()
-            //     .AddAspNetCoreInstrumentation()
-            //     .Build();
-            //
-            // services.AddSingleton(tracerProvider);
-            
+                {
+                    options.AgentHost = "localhost";
+                    options.AgentPort = 6831;
+                }));
+
             services.AddControllers();
-            
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Tracing.WebApi", Version = "v1" });
@@ -78,10 +63,7 @@ namespace Tracing.WebApi
 
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }

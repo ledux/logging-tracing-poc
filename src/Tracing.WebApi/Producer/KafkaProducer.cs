@@ -41,7 +41,7 @@ namespace Tracing.WebApi.Producer
             
             activity?.AddTag("offset", deliveryResult.Offset.Value.ToString());
             activity?.AddBaggage("baggageKey", "baggage value");
-            activity.SetStatus(Status.Error);
+            // activity.SetStatus(Status.Error);
         }
 
         private void InjectContext(Event<Data> eventData, string key, string value)
