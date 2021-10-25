@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
+using Tracing.WebApi.Middleware;
 using Tracing.WebApi.Models;
 using Tracing.WebApi.Producer;
 
@@ -33,9 +34,9 @@ namespace Tracing.WebApi.Controllers
         {
             using var fistActivity = ActivitySource.StartActivity("First activity", ActivityKind.Server);
             var correlationId = Guid.NewGuid().ToString();
-            data.CorrelationId = correlationId;
-            fistActivity.AddTag("correlationId", correlationId);
-            fistActivity.AddEvent(new ActivityEvent("something happened", DateTimeOffset.UtcNow, new ActivityTagsCollection { new("eventKey", "event value") }));
+            data.CorrelationId = CorrelationIdContext.CorrelationId;
+            fistActivity?.AddTag("correlationId", correlationId);
+            fistActivity?.AddEvent(new ActivityEvent("something happened", DateTimeOffset.UtcNow, new ActivityTagsCollection { new("eventKey", "event value") }));
 
             _logger.LogInformation("Got request from email: {Email}", data.Email ?? "<NO MAIL>");
             using var secondAcivty = ActivitySource.StartActivity("second activity", ActivityKind.Server);

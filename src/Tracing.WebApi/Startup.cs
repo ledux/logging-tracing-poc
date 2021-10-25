@@ -10,6 +10,7 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Tracing.WebApi.Controllers;
+using Tracing.WebApi.Middleware;
 using Tracing.WebApi.Producer;
 
 
@@ -27,7 +28,10 @@ namespace Tracing.WebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<KafkaProducer>();
+            services
+                .AddTransient<KafkaProducer>()
+                .AddHttpContextAccessor();
+            
             services.AddOpenTelemetryTracing(builder => builder
                 .AddAspNetCoreInstrumentation()
                 .AddSource(nameof(DataController))
@@ -51,6 +55,8 @@ namespace Tracing.WebApi
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseMiddleware<CorrelationIdMiddleware>();
+            
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

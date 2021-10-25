@@ -37,11 +37,11 @@ namespace Tracing.WebApi.Producer
             var dataAsJson = JsonSerializer.Serialize(eventData);
             var message = new Message<string, string> { Value = dataAsJson };
 
+            _logger.LogInformation("Sending data for correlation id: {CorrelationId}", data.CorrelationId);
             var deliveryResult = await producer.ProduceAsync("topicname", message);
             
             activity?.AddTag("offset", deliveryResult.Offset.Value.ToString());
             activity?.AddBaggage("baggageKey", "baggage value");
-            // activity.SetStatus(Status.Error);
         }
 
         private void InjectContext(Event<Data> eventData, string key, string value)
