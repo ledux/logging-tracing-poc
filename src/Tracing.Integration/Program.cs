@@ -1,4 +1,5 @@
-﻿using Confluent.Kafka;
+﻿using System;
+using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
@@ -29,7 +30,16 @@ namespace Tracing.Integration
                                 AutoOffsetReset = AutoOffsetReset.Earliest,
                                 EnableAutoCommit = true
                             };
-                            var builder = new ConsumerBuilder<string, string>(config).Build();
+                            var builder = new ConsumerBuilder<string, string>(config)
+                                .SetErrorHandler((consumer, error) =>
+                                {
+                                    Console.WriteLine(error.Reason);
+                                })
+                                .SetLogHandler((consumer, message) =>
+                                {
+                                    Console.WriteLine(message);
+                                })
+                                .Build();
                             return new KafkaListenerService<Data>(builder, new[] { "topicname" }, postDataEventHandler);
                         })
                         .AddHttpClient<PostDataEventHandler>()

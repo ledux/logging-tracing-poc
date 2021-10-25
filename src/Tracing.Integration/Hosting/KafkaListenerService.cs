@@ -39,16 +39,35 @@ namespace Tracing.Integration.Hosting
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var consumeResult = _consumer.Consume(stoppingToken);
-                var eventData = JsonSerializer.Deserialize<Event<TData>>(consumeResult.Message.Value);
-                var parentContext = Propagator.Extract(default, eventData.Context, ExtractContext);
-                Baggage.Current = parentContext.Baggage;
+                ConsumeResult<string, string> consumeResult = null;
+                try
+                {
+                    consumeResult = _consumer.Consume(stoppingToken);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
 
-                using var startActivity = ActivitySource.StartActivity("handling kafka event", ActivityKind.Consumer,
-                    parentContext.ActivityContext);
-                startActivity?.AddEvent(new ActivityEvent("event received"));
+                if (consumeResult != null)
+                {
+                    var eventData = JsonSerializer.Deserialize<Event<TData>>(consumeResult.Message.Value);
+                    var parentContext = Propagator.Extract(default, eventData.Context, ExtractContext);
+                    Baggage.Current = parentContext.Baggage;
 
-                await _handler.Handle(eventData.Payload);
+                    using var startActivity = ActivitySource.StartActivity("handling kafka event", ActivityKind.Consumer,
+                        parentContext.ActivityContext);
+                    startActivity?.AddEvent(new ActivityEvent("event received"));
+
+                    try
+                    {
+                        await _handler.Handle(eventData.Payload);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+                }
             }
         }
 
