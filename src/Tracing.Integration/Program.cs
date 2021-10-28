@@ -19,8 +19,8 @@ namespace Tracing.Integration
                 .ConfigureServices((context, collection) =>
                 {
                     collection
-                        .AddTransient<PostDataEventHandler>()
-                        .AddSingleton<IHostedService>(provider =>
+                        .AddTransient<IEventHandler<Data>, PostDataEventHandler>()
+                        .AddHostedService(provider =>
                         {
                             var postDataEventHandler = provider.GetService<PostDataEventHandler>();
                             ConsumerConfig config = new ConsumerConfig()
@@ -40,7 +40,7 @@ namespace Tracing.Integration
                                     Console.WriteLine(message);
                                 })
                                 .Build();
-                            return new KafkaListenerService<Data>(builder, new[] { "topicname" }, postDataEventHandler);
+                            return new KafkaListenerService<Data>(builder, new[] { "topicname" }, provider);
                         })
                         .AddHttpClient<PostDataEventHandler>()
                         ;
@@ -57,7 +57,7 @@ namespace Tracing.Integration
                             })
                             .Build();
                 })
-                .RunConsoleAsync();
+                .Build().Run();
         }
     }
 }
