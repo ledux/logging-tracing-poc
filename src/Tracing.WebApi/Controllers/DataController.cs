@@ -33,9 +33,8 @@ namespace Tracing.WebApi.Controllers
         public async Task<Data> Post(Data data)
         {
             using var fistActivity = ActivitySource.StartActivity("First activity", ActivityKind.Server);
-            var correlationId = Guid.NewGuid().ToString();
             data.CorrelationId = CorrelationIdContext.CorrelationId;
-            fistActivity?.AddTag("correlationId", correlationId);
+            fistActivity?.AddTag("correlationId", data.CorrelationId);
             fistActivity?.AddEvent(new ActivityEvent("something happened", DateTimeOffset.UtcNow, new ActivityTagsCollection { new("eventKey", "event value") }));
 
             _logger.LogInformation("Got request from email: {Email}", data.Email ?? "<NO MAIL>");
