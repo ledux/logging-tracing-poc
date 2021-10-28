@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
+using Tracing.WebApi.Middleware;
 using Tracing.WebApi.Models;
 
 namespace Tracing.WebApi.Producer
@@ -33,6 +34,7 @@ namespace Tracing.WebApi.Producer
 
             var eventData = new Event<Data> { Payload = data };
             Propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), eventData, InjectContext);
+            eventData.Context.Add("correlationId", CorrelationIdContext.CorrelationId);
             
             var dataAsJson = JsonSerializer.Serialize(eventData);
             var message = new Message<string, string> { Value = dataAsJson };
@@ -41,7 +43,6 @@ namespace Tracing.WebApi.Producer
             var deliveryResult = await producer.ProduceAsync("topicname", message);
             
             activity?.AddTag("offset", deliveryResult.Offset.Value.ToString());
-            activity?.AddBaggage("baggageKey", "baggage value");
         }
 
         private void InjectContext(Event<Data> eventData, string key, string value)

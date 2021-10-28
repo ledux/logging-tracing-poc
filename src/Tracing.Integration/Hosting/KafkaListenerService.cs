@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
+using Tracing.Integration.Middleware;
 using Tracing.Integration.Models;
 
 namespace Tracing.Integration.Hosting
@@ -65,9 +66,12 @@ namespace Tracing.Integration.Hosting
                         using (var scope = _serviceProvider.CreateScope())
                         {
                             var handler = scope.ServiceProvider.GetService<IEventHandler<TData>>();
+                            var correlationIdContext = scope.ServiceProvider.GetService<CorrelationIdContext>();
                             var eventData = JsonSerializer.Deserialize<Event<TData>>(consumeResult.Message.Value);
                             var parentContext = Propagator.Extract(default, eventData.Context, ExtractContext);
                             Baggage.Current = parentContext.Baggage;
+
+                            correlationIdContext.CorrelationId = eventData.Context["correlationId"];
 
                             using var startActivity = ActivitySource.StartActivity("handling kafka event",
                                 ActivityKind.Consumer,
